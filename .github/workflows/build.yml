@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Show toolchain
         run: |
@@ -54,7 +54,7 @@ jobs:
             build/SPlayerMenuBarLyrics.zip
 
       - name: Upload DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SPlayerMenuBarLyrics-dmg
           path: build/*.dmg
@@ -62,7 +62,7 @@ jobs:
           retention-days: 14
 
       - name: Upload app bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: SPlayerMenuBarLyrics-app
           path: build/SPlayerMenuBarLyrics.zip

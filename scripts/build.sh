@@ -7,19 +7,29 @@ CONFIG="${1:-release}"
 APP_NAME="SPlayer 菜单栏歌词"
 APP_DIR="build/${APP_NAME}.app"
 
-BUILD_ARGS=(-c "${CONFIG}")
+SLICES=()
 if [[ "${UNIVERSAL:-0}" == "1" ]]; then
-  BUILD_ARGS+=(--arch arm64 --arch x86_64)
+  # 分别构建再 lipo 合并。多 --arch 会让 SwiftPM 切到 Xcode 构建后端，
+  # 旧版 Xcode（如 16.4）在该路径上会报 SWIFT_VERSION 错误。
+  for arch in arm64 x86_64; do
+    echo "==> swift build -c ${CONFIG} --arch ${arch}"
+    swift build -c "${CONFIG}" --arch "${arch}"
+    SLICES+=("$(swift build -c "${CONFIG}" --arch "${arch}" --show-bin-path)/SPlayerMenuBarLyrics")
+  done
+else
+  echo "==> swift build -c ${CONFIG}"
+  swift build -c "${CONFIG}"
+  SLICES+=("$(swift build -c "${CONFIG}" --show-bin-path)/SPlayerMenuBarLyrics")
 fi
-
-echo "==> swift build ${BUILD_ARGS[*]}"
-swift build "${BUILD_ARGS[@]}"
-BIN_PATH="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)/SPlayerMenuBarLyrics"
 
 echo "==> 组装 ${APP_DIR}"
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
-cp "${BIN_PATH}" "${APP_DIR}/Contents/MacOS/SPlayerMenuBarLyrics"
+if [[ "${UNIVERSAL:-0}" == "1" ]]; then
+  lipo -create "${SLICES[@]}" -output "${APP_DIR}/Contents/MacOS/SPlayerMenuBarLyrics"
+else
+  cp "${SLICES[0]}" "${APP_DIR}/Contents/MacOS/SPlayerMenuBarLyrics"
+fi
 cp Support/Info.plist "${APP_DIR}/Contents/Info.plist"
 cp Support/AppIcon.icns "${APP_DIR}/Contents/Resources/AppIcon.icns"
 cp plugin/favorite-bridge.js "${APP_DIR}/Contents/Resources/favorite-bridge.js"

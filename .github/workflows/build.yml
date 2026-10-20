@@ -1,0 +1,109 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+# 打标签时用 GITHUB_TOKEN 创建 Release
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # 标签构建不要被后续推送取消，避免 Release 中断
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
+jobs:
+  build:
+    name: Build & test
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      # 同时编译 arm64 与 x86_64，产物为通用二进制
+      UNIVERSAL: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build app and DMG
+        run: ./scripts/package.sh
+
+      - name: Verify universal binary
+        run: |
+          BIN="build/SPlayer 菜单栏歌词.app/Contents/MacOS/SPlayerMenuBarLyrics"
+          ARCHS="$(lipo -archs "$BIN")"
+          echo "Architectures: $ARCHS"
+          [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]]
+
+      - name: Zip app bundle
+        run: |
+          ditto -c -k --keepParent \
+            "build/SPlayer 菜单栏歌词.app" \
+            build/SPlayerMenuBarLyrics.zip
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPlayerMenuBarLyrics-dmg
+          path: build/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPlayerMenuBarLyrics-app
+          path: build/SPlayerMenuBarLyrics.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Check release tag matches app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
+          if [[ "${GITHUB_REF_NAME}" != "v${VERSION}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match Info.plist version ${VERSION}"
+            exit 1
+          fi
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          assets=(build/*.dmg build/SPlayerMenuBarLyrics.zip)
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            # 重跑同一标签时覆盖已有附件
+            gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "${assets[@]}" \
+              --title "SPlayer Menu Bar Lyrics ${GITHUB_REF_NAME#v}" \
+              --generate-notes
+          fi
+
+      - name: Write build summary
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
+          DMG="$(ls build/*.dmg | head -n 1)"
+          {
+            echo "### Build summary"
+            echo
+            echo "| Item | Value |"
+            echo "| --- | --- |"
+            echo "| Version | ${VERSION} |"
+            echo "| Architectures | $(lipo -archs "build/SPlayer 菜单栏歌词.app/Contents/MacOS/SPlayerMenuBarLyrics") |"
+            echo "| DMG | $(basename "${DMG}") ($(du -h "${DMG}" | cut -f1)) |"
+          } >> "$GITHUB_STEP_SUMMARY"

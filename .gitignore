@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output
+build/
+DerivedData/
+*.dmg
+*.xcarchive
+*.xcresult
+*.ipa
+*.dSYM/
+*.dSYM.zip
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.moved-aside
+*.profraw
+*.profdata
+*.coverage
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code (local-only)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example

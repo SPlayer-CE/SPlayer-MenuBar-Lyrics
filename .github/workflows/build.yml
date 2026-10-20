@@ -42,7 +42,7 @@ jobs:
 
       - name: Verify universal binary
         run: |
-          BIN="build/SPlayer 菜单栏歌词.app/Contents/MacOS/SPlayerMenuBarLyrics"
+          BIN="build/SPlayer Menu Bar Lyrics.app/Contents/MacOS/SPlayerMenuBarLyrics"
           ARCHS="$(lipo -archs "$BIN")"
           echo "Architectures: $ARCHS"
           [[ "$ARCHS" == *arm64* && "$ARCHS" == *x86_64* ]]
@@ -50,7 +50,7 @@ jobs:
       - name: Zip app bundle
         run: |
           ditto -c -k --keepParent \
-            "build/SPlayer 菜单栏歌词.app" \
+            "build/SPlayer Menu Bar Lyrics.app" \
             build/SPlayerMenuBarLyrics.zip
 
       - name: Upload DMG
@@ -104,6 +104,6 @@ jobs:
             echo "| Item | Value |"
             echo "| --- | --- |"
             echo "| Version | ${VERSION} |"
-            echo "| Architectures | $(lipo -archs "build/SPlayer 菜单栏歌词.app/Contents/MacOS/SPlayerMenuBarLyrics") |"
+            echo "| Architectures | $(lipo -archs "build/SPlayer Menu Bar Lyrics.app/Contents/MacOS/SPlayerMenuBarLyrics") |"
             echo "| DMG | $(basename "${DMG}") ($(du -h "${DMG}" | cut -f1)) |"
           } >> "$GITHUB_STEP_SUMMARY"

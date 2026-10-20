@@ -53,7 +53,7 @@ SPlayer-Next plugins run in a sandboxed subprocess with only `network / control 
 
 ```bash
 ./scripts/build.sh
-open "build/SPlayer 菜单栏歌词.app"
+open "build/SPlayer Menu Bar Lyrics.app"
 ```
 
 You can also run straight from source while developing:
@@ -68,7 +68,7 @@ On launch there is no Dock icon; a music icon plus the current lyric appears in 
 
 ```bash
 ./scripts/package.sh
-# Output: build/SPlayer 菜单栏歌词 1.1.0.dmg
+# Output: build/SPlayer-Menu-Bar-Lyrics-1.1.0.dmg
 ```
 
 The DMG contains the app and an `Applications` shortcut, so you can drag to install. The app is ad-hoc signed and not notarized. If Gatekeeper blocks the first launch, allow it under **System Settings → Privacy & Security**, or right-click the app and choose Open.

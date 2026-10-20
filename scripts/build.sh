@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
-APP_NAME="SPlayer 菜单栏歌词"
+APP_NAME="SPlayer Menu Bar Lyrics"
 APP_DIR="build/${APP_NAME}.app"
 
 SLICES=()

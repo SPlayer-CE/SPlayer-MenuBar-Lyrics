@@ -53,7 +53,7 @@ SPlayer-Next 的插件运行在沙箱子进程中，权限只有 `network / cont
 
 ```bash
 ./scripts/build.sh
-open "build/SPlayer 菜单栏歌词.app"
+open "build/SPlayer Menu Bar Lyrics.app"
 ```
 
 开发时也可以直接从源码运行：
@@ -68,7 +68,7 @@ swift run SPlayerMenuBarLyrics
 
 ```bash
 ./scripts/package.sh
-# 输出 build/SPlayer 菜单栏歌词 1.1.0.dmg
+# 输出 build/SPlayer-Menu-Bar-Lyrics-1.1.0.dmg
 ```
 
 DMG 内含应用本体与 `Applications` 快捷方式，拖入即可安装。应用使用 ad-hoc 签名、未公证，首次打开若被 Gatekeeper 拦截，请在「系统设置 → 隐私与安全性」中放行，或右键 → 打开。

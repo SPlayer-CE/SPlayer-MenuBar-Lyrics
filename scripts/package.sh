@@ -3,10 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-APP_NAME="SPlayer 菜单栏歌词"
+APP_NAME="SPlayer Menu Bar Lyrics"
 APP_DIR="build/${APP_NAME}.app"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
-DMG_PATH="build/${APP_NAME} ${VERSION}.dmg"
+DMG_PATH="build/SPlayer-Menu-Bar-Lyrics-${VERSION}.dmg"
 
 ./scripts/build.sh release
 

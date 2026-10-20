@@ -40,6 +40,7 @@ final class SPlayerClient: ObservableObject {
     @Published private(set) var playbackState = "idle"
     @Published private(set) var speed: Double = 1
     @Published private(set) var wsConnected = false
+    @Published private(set) var serverVersion: String?
 
     let anchor = PositionAnchor()
 
@@ -68,9 +69,14 @@ final class SPlayerClient: ObservableObject {
         lyricTask?.cancel()
     }
 
-    /// 当前用于歌词索引的时间（毫秒，已叠加歌词偏移）
+    /// 当前用于歌词索引的时间（毫秒，已叠加 SPlayer-Next 的偏移与用户微调）
     var currentLyricTimeMs: Double {
-        anchor.current() + lyricOffsetMs
+        anchor.current() + lyricOffsetMs + prefs.userLyricOffsetMs
+    }
+
+    /// 当前播放位置（毫秒，不含歌词偏移）
+    var currentPositionMs: Double {
+        max(0, anchor.current())
     }
 
     var statusText: String {
@@ -117,6 +123,7 @@ final class SPlayerClient: ObservableObject {
         lastLyricFetchTrackID = nil
         lastLyricLineCount = -1
         wsConnected = false
+        serverVersion = nil
         anchor.reset()
         if status != .connecting {
             status = .connecting
@@ -131,6 +138,7 @@ final class SPlayerClient: ObservableObject {
         wsTask = Task { @MainActor [weak self] in
             await self?.webSocketLoop()
         }
+        fetchServerInfo()
     }
 
     /// 手动拉取一次歌词
@@ -425,8 +433,23 @@ final class SPlayerClient: ObservableObject {
         }
     }
 
-    private func getJSON<T: Decodable>(_ path: String) async throws -> T {
-        guard let url = URL(string: "http://127.0.0.1:\(prefs.port)\(path)") else {
+    private func fetchServerInfo() {
+        guard let url = URL(string: "http://127.0.0.1:\(prefs.port)/api/info") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        Task { @MainActor [weak self] in
+            guard let (data, response) = try? await URLSession.shared.data(for: request),
+                  let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  let info = try? JSONDecoder().decode(SPlayerInfo.self, from: data) else {
+                return
+            }
+            self?.serverVersion = info.version
+        }
+    }
+
+    private func getJSON<T: Decodable>(_ path: String) async throws -> T {        guard let url = URL(string: "http://127.0.0.1:\(prefs.port)\(path)") else {
             throw URLError(.badURL)
         }
         var request = URLRequest(url: url)
@@ -463,11 +486,9 @@ final class SPlayerClient: ObservableObject {
         return error.localizedDescription
     }
 
-    private let debugEnabled = ProcessInfo.processInfo.environment["SPlayerMenuBarLyricsDebug"] == "1"
-
     private func debugLog(_ message: @autoclosure () -> String) {
-        guard debugEnabled else { return }
-        print("[SPlayerMenuBarLyrics] \(message())")
-        fflush(stdout)
+#if DEBUG
+        DebugLog.write(message())
+#endif
     }
 }

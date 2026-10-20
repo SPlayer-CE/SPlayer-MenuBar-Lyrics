@@ -82,4 +82,41 @@ final class MenuBarLyricViewTests: XCTestCase {
         XCTAssertEqual(text.frame.minX, 6)
         XCTAssertEqual(text.frame.maxX, width - 6)
     }
+
+    func testDesiredWidthTracksTextLength() {
+        _ = NSApplication.shared
+
+        let view = MenuBarLyricView(
+            frame: NSRect(x: 0, y: 0, width: 287, height: 22)
+        )
+        view.setControlsVisible(false)
+        view.setFavorite(favorite: false, supported: false, available: false)
+        view.setIconPosition(.left)
+
+        let short = view.desiredWidth(for: "短", maxWidth: 600)
+        let long = view.desiredWidth(
+            for: "这一行歌词明显比上一行长很多很多很多很多很多",
+            maxWidth: 600
+        )
+
+        XCTAssertGreaterThan(long, short)
+        XCTAssertLessThanOrEqual(long, 600)
+        XCTAssertGreaterThanOrEqual(short, 60)
+    }
+
+    func testDesiredWidthRespectsMaximum() {
+        _ = NSApplication.shared
+
+        let view = MenuBarLyricView(
+            frame: NSRect(x: 0, y: 0, width: 287, height: 22)
+        )
+        view.setControlsVisible(true)
+        view.setFavorite(favorite: false, supported: true, available: true)
+
+        let wide = view.desiredWidth(
+            for: String(repeating: "很长的歌词", count: 50),
+            maxWidth: 240
+        )
+        XCTAssertEqual(wide, 240, accuracy: 0.01)
+    }
 }

@@ -26,9 +26,13 @@
 - **真实逐字高亮**：支持 QRC / YRC / TTML 等自带逐字时间的歌词；LRC 整行歌词保持静态，不会凭空生成逐字效果。
 - **就地操控**：歌词项右侧内置 18px 的「上一首 / 播放·暂停 / 下一首」按钮，无需打开菜单。
 - **网易云收藏**：播放网易云歌曲时显示红心，可在菜单栏直接收藏 / 取消收藏（需安装附带的桥接插件）。
-- **可调外观**：展示宽度 100–600 px、歌词对齐、音乐图标位置均可配置。
+- **可调外观**：展示宽度 100–600 px、字号 11–16 pt、自动宽度、歌词对齐、音乐图标位置均可配置。
+- **歌曲信息与 HUD**：点开菜单里的歌名可查看封面、专辑与播放进度；切歌时在菜单栏下方短暂显示 HUD。
+- **歌词偏移**：歌词整体偏早或偏晚时，可按 0.1 s / 0.5 s 微调。
+- **刘海与多屏适配**：按状态项所在屏幕的可用区域自动收窄，避免被刘海或其他状态项挤掉。
+- **更新检查与诊断**：设置页可检查 GitHub Releases，并一键复制排障信息。
 - **中英双语**：菜单、设置与按钮提示即时切换。
-- **轻量**：无 Dock 图标、无后台守护进程，退出应用即完全停止。
+- **轻量**：无 Dock 图标、无后台守护进程，退出应用即完全停止；暂停或未连接时会停掉 30fps 重绘。
 
 ## 工作原理简述
 
@@ -77,8 +81,9 @@ DMG 内含应用本体与 `Applications` 快捷方式，拖入即可安装。应
 
 ### 菜单栏
 
-- 点击歌词打开菜单：顶部显示连接状态，下面依次是播放控制、歌词开关、对齐方式、设置与退出。
-- 菜单栏空间有限，展示宽度过大时可能被系统或刘海隐藏，可适当调小宽度。
+- 点击歌词打开菜单：顶部显示连接状态与当前歌曲，点歌名可打开歌曲信息面板（封面、专辑、进度）。
+- 「歌词偏移」子菜单可按 0.1 s / 0.5 s 微调当前歌词时间。
+- 菜单栏空间不足（含刘海屏）时会自动收窄；仍可手动调小展示宽度。
 - 菜单展开时可用快捷键：`⌘,` 打开设置，`⌘Q` 退出。
 
 ### 设置项
@@ -88,11 +93,15 @@ DMG 内含应用本体与 `Applications` 快捷方式，拖入即可安装。应
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
 | 菜单栏展示歌词 | 开启 | 总开关 |
-| 展示宽度 | 287 px | 可调 100–600 px |
+| 展示宽度 | 287 px | 可调 100–600 px；自动宽度时作为上限 |
+| 自动宽度 | 关闭 | 按当前歌词长度调整 |
+| 字号 | 13 pt | 11–16 pt |
 | 歌词对齐 | 靠左 | 靠左 / 居中 / 靠右，也可在菜单中切换 |
 | 图标位置 | 歌词左侧 | 歌词左侧 / 歌词右侧 / 不显示 |
 | 逐字高亮 | 开启 | 仅对带真实逐字时间的歌词生效 |
 | 菜单栏常驻操控 | 开启 | 关闭后空闲时隐藏上一首 / 播放·暂停 / 下一首 |
+| 切歌 HUD | 开启 | 切歌时显示歌名、歌手与封面 |
+| 歌词偏移 | 0.0 s | ±3 s，步进 0.1 s |
 | 开机自动启动 | 关闭 | 使用系统登录项 |
 | 界面语言 | 跟随系统 | 跟随系统 / 简体中文 / English |
 | 外部 API 端口 | 14558 | 可点「读取 SPlayer 配置」自动同步 |
@@ -146,7 +155,7 @@ swift run SPlayerMenuBarLyrics
 swift test
 ```
 
-覆盖歌词当前行选择、位置锚点插值 / 暂停 / 倍速 / 漂移校正、超宽歌词绘制边界、图标布局，以及中英文案完整性。
+覆盖歌词当前行选择、位置锚点插值 / 暂停 / 倍速 / 漂移校正、超宽歌词绘制边界、图标与自动宽度布局、封面字段解析、版本比较，以及中英文案完整性。
 
 ### 应用图标
 
@@ -162,7 +171,7 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ## 已知限制
 
-- 菜单栏空间有限，展示宽度过大时会被系统或刘海隐藏（网易云也有相同提示）。
+- 屏幕过小或状态项过多时，菜单栏仍可能隐藏本应用；展示宽度会自动收窄，也可以手动调小。
 - 逐字高亮依赖歌词源提供真实 word 时间；LRC 等整行歌词不会生成逐字效果。
 - 本地歌曲没有歌词时显示歌曲标题；播放器未连接时仅显示图标。
 - 外部 API 无鉴权且默认仅监听本机；请勿在不可信网络中开启「允许局域网访问」。
@@ -172,9 +181,14 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ```
 MenuBarLyrics/
-├── .github/workflows/build.yml             # GitHub Actions 构建与发布
+├── .github/
+│   ├── workflows/build.yml                 # GitHub Actions 构建与发布
+│   ├── ISSUE_TEMPLATE/                     # Issue 模板
+│   └── PULL_REQUEST_TEMPLATE.md
 ├── Package.swift
 ├── LICENSE                                 # GNU AGPL v3.0
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── Sources/SPlayerMenuBarLyrics/
 │   ├── main.swift / AppDelegate.swift      # 菜单栏入口、状态栏与菜单
 │   ├── MenuBarLyricView.swift              # 菜单栏歌词与播放控制的自绘视图
@@ -185,6 +199,11 @@ MenuBarLyrics/
 │   ├── Preferences.swift                   # UserDefaults 配置
 │   ├── Localization.swift                  # 中英文案表
 │   ├── SettingsView.swift                  # SwiftUI 设置面板
+│   ├── TrackInfoPopover.swift              # 歌曲信息与封面面板
+│   ├── TrackHUD.swift                      # 切歌 HUD
+│   ├── UpdateChecker.swift                 # GitHub Releases 更新检查
+│   ├── Diagnostics.swift                   # 诊断信息导出
+│   ├── DebugLog.swift                      # 仅 Debug 构建启用的日志
 │   ├── FavoriteBridge.swift                # 收藏桥接本地 HTTP 服务
 │   └── SPlayerConfigReader.swift           # 读取 SPlayer-Next 端口配置
 ├── plugin/favorite-bridge.js               # SPlayer 收藏桥接插件
@@ -199,6 +218,12 @@ MenuBarLyrics/
 │   └── GenerateIcon.swift                  # 重新生成图标
 └── Tests/SPlayerMenuBarLyricsTests/
 ```
+
+## 参与贡献
+
+请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。遇到安全问题请按 [SECURITY.md](SECURITY.md) 私下报告，不要直接开公开 Issue。
+
+提交 Bug 时，可在设置 → 关于 里点「复制诊断信息」，把结果一并附上。
 
 ## 许可证
 

@@ -5,21 +5,32 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let prefs = Preferences()
     private let favoriteBridge = FavoriteBridge()
+    private let updateChecker = UpdateChecker()
+    private let trackHUD = TrackHUDController()
     private lazy var client = SPlayerClient(prefs: prefs)
+    private lazy var trackInfoPopover = TrackInfoPopoverController(client: client)
     private var settingsController: SettingsWindowController!
     private var statusItem: NSStatusItem!
     private var lyricView: MenuBarLyricView!
     private var cancellables = Set<AnyCancellable>()
+    private var screenObserverTokens: [NSObjectProtocol] = []
     private var menuBarTimer: Timer?
 
+    private var lastAutoWidthKey = ""
+    private var lastHUDTrackID: String?
+
+#if DEBUG
     private var lastDebugTitle = ""
     private var lastControlState = ""
+#endif
     private var cachedLineIndex = -2
     private var cachedLineText = ""
     private var cachedWordByWord = false
     private var cachedTimings: [CharacterTiming] = []
 
+#if DEBUG
     private let debugEnabled = ProcessInfo.processInfo.environment["SPlayerMenuBarLyricsDebug"] == "1"
+#endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -28,14 +39,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsController = SettingsWindowController(
             prefs: prefs,
             client: client,
-            favoriteBridge: favoriteBridge
+            favoriteBridge: favoriteBridge,
+            updateChecker: updateChecker
         )
         setupStatusItem()
         observe()
+        observeScreens()
         client.start()
         refreshMenu()
-        startMenuBarTicker()
+        syncMenuBarTicker()
 
+        if prefs.autoCheckUpdates {
+            Task { [weak self] in
+                await self?.updateChecker.autoCheckIfNeeded()
+            }
+        }
+
+#if DEBUG
         // 调试：模拟点击红心，便于验证桥接请求
         if CommandLine.arguments.contains("--test-favorite") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -56,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.openSettings()
             }
         }
+#endif
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -63,8 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        menuBarTimer?.invalidate()
-        menuBarTimer = nil
+        stopMenuBarTicker()
+        trackHUD.hide(animated: false)
+        trackInfoPopover.close()
+        for token in screenObserverTokens {
+            NotificationCenter.default.removeObserver(token)
+        }
+        screenObserverTokens.removeAll()
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -105,6 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.toolTip = L10n.t(.appName)
             button.addSubview(lyricView)
             lyricView.frame = button.bounds
+            lyricView.setFontSize(CGFloat(prefs.menuBarFontSize))
         }
         statusItem.menu = NSMenu()
     }
@@ -121,12 +148,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lyricView.setPlaying(client.isPlaying)
         updateHeart()
 
+#if DEBUG
         let state = "\(show)-\(client.isPlaying)"
         if debugEnabled, state != lastControlState {
             lastControlState = state
             print("[SPlayerMenuBarLyrics] 控制按钮 显示=\(show) 播放=\(client.isPlaying)")
             fflush(stdout)
         }
+#endif
     }
 
     /// 同步当前曲目的红心状态
@@ -164,6 +193,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         status.isEnabled = false
         menu.addItem(status)
+
+        if let track = client.track {
+            let titleItem = menuItem(track.title, #selector(showTrackInfo), key: "")
+            titleItem.toolTip = L10n.t(.trackInfo)
+            menu.addItem(titleItem)
+            let artistItem = NSMenuItem(
+                title: track.artistsText,
+                action: nil,
+                keyEquivalent: ""
+            )
+            artistItem.isEnabled = false
+            menu.addItem(artistItem)
+        }
+
         menu.addItem(.separator())
 
         let connected = client.status == .connected
@@ -195,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         )
         menu.addItem(alignmentMenuItem())
+        menu.addItem(lyricOffsetMenuItem())
         menu.addItem(
             checkItem(
                 L10n.t(.alwaysShowControls),
@@ -203,6 +247,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             )
         )
         menu.addItem(.separator())
+        if case .available(let version, _) = updateChecker.state {
+            menu.addItem(
+                menuItem(
+                    L10n.format(.updateAvailable, version),
+                    #selector(openReleasePage),
+                    key: ""
+                )
+            )
+        }
         menu.addItem(menuItem(L10n.t(.settingsMenu), #selector(openSettings), key: ","))
         menu.addItem(menuItem(L10n.t(.openSPlayer), #selector(activateSPlayer), key: ""))
         menu.addItem(.separator())
@@ -249,6 +302,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }
 
+    /// 「歌词偏移」子菜单：按 0.1s / 0.5s 微调
+    private func lyricOffsetMenuItem() -> NSMenuItem {
+        let current = prefs.userLyricOffsetMs
+        let item = NSMenuItem(
+            title: "\(L10n.t(.lyricOffset)) (\(offsetText(current)))",
+            action: nil,
+            keyEquivalent: ""
+        )
+        let submenu = NSMenu()
+        let steps: [(Double, String)] = [
+            (-500, "−0.5 s"),
+            (-100, "−0.1 s"),
+            (0, L10n.t(.reset)),
+            (100, "+0.1 s"),
+            (500, "+0.5 s"),
+        ]
+        for (delta, label) in steps {
+            let option = menuItem(label, #selector(adjustLyricOffset(_:)), key: "")
+            option.representedObject = NSNumber(value: delta)
+            if delta == 0 {
+                option.isEnabled = abs(current) > 0.5
+            }
+            submenu.addItem(option)
+        }
+        item.submenu = submenu
+        return item
+    }
+
+    private func offsetText(_ milliseconds: Double) -> String {
+        if abs(milliseconds) < 0.5 { return "0.0 s" }
+        return String(format: "%+.1f s", milliseconds / 1000)
+    }
+
     private func menuItem(_ title: String, _ action: Selector, key: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
@@ -264,15 +350,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async {
                     self?.refreshMenu()
                     self?.updateMenuBarLyric()
+                    self?.syncMenuBarTicker()
                 }
             }
             .store(in: &cancellables)
         client.$track
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] track in
                 DispatchQueue.main.async {
                     self?.refreshMenu()
                     self?.updateMenuBarLyric()
+                    self?.maybeShowTrackHUD(track)
                 }
             }
             .store(in: &cancellables)
@@ -288,6 +376,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         client.$isPlaying
             .dropFirst()
             .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.refreshMenu()
+                    self?.updateMenuBarLyric()
+                    self?.syncMenuBarTicker()
+                }
+            }
+            .store(in: &cancellables)
+        client.$wsConnected
+            .dropFirst()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.refreshMenu() }
+            }
+            .store(in: &cancellables)
+        client.$serverVersion
+            .dropFirst()
+            .sink { [weak self] _ in
                 DispatchQueue.main.async { self?.refreshMenu() }
             }
             .store(in: &cancellables)
@@ -297,15 +401,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async { self?.updateHeart() }
             }
             .store(in: &cancellables)
+        updateChecker.$state
+            .dropFirst()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.refreshMenu() }
+            }
+            .store(in: &cancellables)
         prefs.objectWillChange
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.refreshMenu()
                     self?.updateMenuBarLyric()
+                    self?.syncMenuBarTicker()
                 }
             }
             .store(in: &cancellables)
+    }
+
+    /// 屏幕参数或状态项所在屏幕变化时重新计算可用宽度
+    private func observeScreens() {
+        let center = NotificationCenter.default
+        screenObserverTokens.append(
+            center.addObserver(
+                forName: NSApplication.didChangeScreenParametersNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.handleScreenChange()
+                }
+            }
+        )
+        if let window = statusItem.button?.window {
+            screenObserverTokens.append(
+                center.addObserver(
+                    forName: NSWindow.didChangeScreenNotification,
+                    object: window,
+                    queue: .main
+                ) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.handleScreenChange()
+                    }
+                }
+            )
+        }
+    }
+
+    private func handleScreenChange() {
+        lastAutoWidthKey = ""
+        refreshMenu()
+        updateMenuBarLyric()
+    }
+
+    private func maybeShowTrackHUD(_ track: Track?) {
+        let previousID = lastHUDTrackID
+        if let track {
+            lastHUDTrackID = track.id
+        }
+        guard prefs.showTrackHUD,
+              let track,
+              let previousID,
+              previousID != track.id else { return }
+        trackHUD.show(track: track, near: statusItem.button)
     }
 
     /// 首次启动时沿用 SPlayer-Next 里配置的端口
@@ -356,6 +514,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateMenuBarLyric()
     }
 
+    @objc private func adjustLyricOffset(_ sender: NSMenuItem) {
+        let delta = (sender.representedObject as? NSNumber)?.doubleValue ?? 0
+        if delta == 0 {
+            prefs.userLyricOffsetMs = 0
+        } else {
+            prefs.userLyricOffsetMs = min(
+                max(prefs.userLyricOffsetMs + delta, -3000),
+                3000
+            )
+        }
+        refreshMenu()
+        updateMenuBarLyric()
+    }
+
+    @objc private func showTrackInfo() {
+        guard let button = statusItem.button else { return }
+        if trackInfoPopover.isShown {
+            trackInfoPopover.close()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+            trackInfoPopover.show(relativeTo: button)
+        }
+    }
+
+    @objc private func openReleasePage() {
+        guard case .available(_, let url) = updateChecker.state else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     @objc private func openSettings() {
         settingsController.present()
     }
@@ -370,6 +557,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 菜单栏歌词
 
+    /// 只在真正需要动画时运行 30fps 定时器；暂停或未连接时完全停掉
+    private func syncMenuBarTicker() {
+        let shouldAnimate = prefs.menuBarLyricsEnabled
+            && client.status == .connected
+            && client.isPlaying
+        if shouldAnimate {
+            startMenuBarTicker()
+        } else {
+            stopMenuBarTicker()
+            updateMenuBarLyric()
+        }
+    }
+
     private func startMenuBarTicker() {
         guard menuBarTimer == nil else { return }
         let timer = Timer(
@@ -383,6 +583,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.main.add(timer, forMode: .common)
         menuBarTimer = timer
         updateMenuBarLyric()
+    }
+
+    private func stopMenuBarTicker() {
+        menuBarTimer?.invalidate()
+        menuBarTimer = nil
     }
 
     @objc private func updateMenuBarLyric() {
@@ -431,14 +636,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tooltip.insert("\(track.title) — \(track.artistsText)", at: 2)
         }
 
-        let targetLength = prefs.menuBarLyricsEnabled
-            ? CGFloat(prefs.menuBarWidth)
-            : 30
-        if statusItem.length != targetLength {
+        lyricView.setIconPosition(prefs.menuBarIconPosition)
+        lyricView.setFontSize(CGFloat(prefs.menuBarFontSize))
+        let maxWidth = effectiveMaxMenuBarWidth()
+        let targetLength = menuBarTargetLength(display: display, maxWidth: maxWidth)
+        if abs(statusItem.length - targetLength) > 0.5 {
             statusItem.length = targetLength
         }
 
-        lyricView.setIconPosition(prefs.menuBarIconPosition)
         lyricView.update(
             text: display,
             mainLineUTF16: mainLineUTF16,
@@ -455,10 +660,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             statusItem.button?.toolTip = tip
         }
 
+#if DEBUG
         if debugEnabled, display != lastDebugTitle {
             lastDebugTitle = display
             print("[SPlayerMenuBarLyrics] 菜单栏 -> \(display)")
             fflush(stdout)
         }
+#endif
+    }
+
+    private func menuBarTargetLength(display: String, maxWidth: CGFloat) -> CGFloat {
+        guard prefs.menuBarLyricsEnabled else { return 30 }
+        guard prefs.menuBarAutoWidth else {
+            return min(CGFloat(prefs.menuBarWidth), maxWidth)
+        }
+        let key = [
+            display,
+            "\(prefs.menuBarFontSize)",
+            "\(prefs.menuBarWidth)",
+            "\(maxWidth)",
+            lyricView.layoutSignature,
+        ].joined(separator: "|")
+        if key != lastAutoWidthKey {
+            lastAutoWidthKey = key
+            return lyricView.desiredWidth(for: display, maxWidth: maxWidth)
+        }
+        return statusItem.length
+    }
+
+    /// 菜单栏右侧可用宽度；刘海屏上取刘海右侧区域，避免状态项被挤掉
+    private func effectiveMaxMenuBarWidth() -> CGFloat {
+        let userMax = CGFloat(prefs.menuBarWidth)
+        guard let screen = statusItem?.button?.window?.screen ?? NSScreen.main else {
+            return userMax
+        }
+        if let rightArea = screen.auxiliaryTopRightArea, rightArea.width > 0 {
+            return min(userMax, max(120, rightArea.width - 12))
+        }
+        return userMax
     }
 }

@@ -89,19 +89,13 @@ final class FavoriteBridge: ObservableObject {
         }
         server.requestRefresh()
         updateConnection()
-        if ProcessInfo.processInfo.environment["SPlayerMenuBarLyricsDebug"] == "1" {
-            print("[SPlayerMenuBarLyrics] 刷新收藏插件连接 listening=\(listening)")
-            fflush(stdout)
-        }
+        DebugLog.write("刷新收藏插件连接 listening=\(listening)")
     }
 
     private func apply(_ report: FavoriteReport) {
-        if ProcessInfo.processInfo.environment["SPlayerMenuBarLyricsDebug"] == "1" {
-            print(
-                "[SPlayerMenuBarLyrics] 收藏状态 track=\(report.trackId) favorite=\(report.favorite) available=\(report.available)"
-            )
-            fflush(stdout)
-        }
+        DebugLog.write(
+            "收藏状态 track=\(report.trackId) favorite=\(report.favorite) available=\(report.available)"
+        )
         favorites[report.trackId] = report.favorite
         availability[report.trackId] = report.available
         remember(report.trackId)
@@ -373,11 +367,7 @@ final class FavoriteBridgeServer {
     }
 
     private func log(_ message: String) {
-        guard ProcessInfo.processInfo.environment["SPlayerMenuBarLyricsDebug"] == "1" else {
-            return
-        }
-        print("[SPlayerMenuBarLyrics] \(message)")
-        fflush(stdout)
+        DebugLog.write(message)
     }
 
     private struct HTTPRequest {

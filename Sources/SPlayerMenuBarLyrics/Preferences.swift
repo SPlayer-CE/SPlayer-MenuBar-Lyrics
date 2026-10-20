@@ -42,10 +42,15 @@ final class Preferences: ObservableObject {
         static let port = "port"
         static let menuBarLyricsEnabled = "menuBarLyricsEnabled"
         static let menuBarWidth = "menuBarWidth"
+        static let menuBarAutoWidth = "menuBarAutoWidth"
+        static let menuBarFontSize = "menuBarFontSize"
         static let menuBarWordByWord = "menuBarWordByWord"
         static let menuBarAlwaysVisible = "menuBarAlwaysVisible"
         static let menuBarAlignment = "menuBarAlignment"
         static let menuBarIconPosition = "menuBarIconPosition"
+        static let userLyricOffsetMs = "userLyricOffsetMs"
+        static let showTrackHUD = "showTrackHUD"
+        static let autoCheckUpdates = "autoCheckUpdates"
         static let language = "language"
     }
 
@@ -55,10 +60,15 @@ final class Preferences: ObservableObject {
     @Published var port: Int { didSet { persist() } }
     @Published var menuBarLyricsEnabled: Bool { didSet { persist() } }
     @Published var menuBarWidth: Double { didSet { persist() } }
+    @Published var menuBarAutoWidth: Bool { didSet { persist() } }
+    @Published var menuBarFontSize: Double { didSet { persist() } }
     @Published var menuBarWordByWord: Bool { didSet { persist() } }
     @Published var menuBarAlwaysVisible: Bool { didSet { persist() } }
     @Published var menuBarAlignment: LyricAlignment { didSet { persist() } }
     @Published var menuBarIconPosition: MenuBarIconPosition { didSet { persist() } }
+    @Published var userLyricOffsetMs: Double { didSet { persist() } }
+    @Published var showTrackHUD: Bool { didSet { persist() } }
+    @Published var autoCheckUpdates: Bool { didSet { persist() } }
     @Published var language: AppLanguage {
         didSet {
             L10n.language = language
@@ -75,16 +85,23 @@ final class Preferences: ObservableObject {
             Key.port: 14558,
             Key.menuBarLyricsEnabled: true,
             Key.menuBarWidth: 287.0,
+            Key.menuBarAutoWidth: false,
+            Key.menuBarFontSize: 13.0,
             Key.menuBarWordByWord: true,
             Key.menuBarAlwaysVisible: true,
             Key.menuBarAlignment: LyricAlignment.left.rawValue,
             Key.menuBarIconPosition: MenuBarIconPosition.left.rawValue,
+            Key.userLyricOffsetMs: 0.0,
+            Key.showTrackHUD: true,
+            Key.autoCheckUpdates: true,
             Key.language: AppLanguage.system.rawValue,
         ])
 
         port = defaults.integer(forKey: Key.port)
         menuBarLyricsEnabled = defaults.bool(forKey: Key.menuBarLyricsEnabled)
         menuBarWidth = defaults.double(forKey: Key.menuBarWidth)
+        menuBarAutoWidth = defaults.bool(forKey: Key.menuBarAutoWidth)
+        menuBarFontSize = defaults.double(forKey: Key.menuBarFontSize)
         menuBarWordByWord = defaults.bool(forKey: Key.menuBarWordByWord)
         menuBarAlwaysVisible = defaults.bool(forKey: Key.menuBarAlwaysVisible)
         menuBarAlignment = LyricAlignment(
@@ -93,6 +110,9 @@ final class Preferences: ObservableObject {
         menuBarIconPosition = MenuBarIconPosition(
             rawValue: defaults.string(forKey: Key.menuBarIconPosition) ?? ""
         ) ?? .left
+        userLyricOffsetMs = defaults.double(forKey: Key.userLyricOffsetMs)
+        showTrackHUD = defaults.bool(forKey: Key.showTrackHUD)
+        autoCheckUpdates = defaults.bool(forKey: Key.autoCheckUpdates)
         language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "")
             ?? .system
         L10n.language = language
@@ -104,10 +124,15 @@ final class Preferences: ObservableObject {
         defaults.set(port, forKey: Key.port)
         defaults.set(menuBarLyricsEnabled, forKey: Key.menuBarLyricsEnabled)
         defaults.set(menuBarWidth, forKey: Key.menuBarWidth)
+        defaults.set(menuBarAutoWidth, forKey: Key.menuBarAutoWidth)
+        defaults.set(menuBarFontSize, forKey: Key.menuBarFontSize)
         defaults.set(menuBarWordByWord, forKey: Key.menuBarWordByWord)
         defaults.set(menuBarAlwaysVisible, forKey: Key.menuBarAlwaysVisible)
         defaults.set(menuBarAlignment.rawValue, forKey: Key.menuBarAlignment)
         defaults.set(menuBarIconPosition.rawValue, forKey: Key.menuBarIconPosition)
+        defaults.set(userLyricOffsetMs, forKey: Key.userLyricOffsetMs)
+        defaults.set(showTrackHUD, forKey: Key.showTrackHUD)
+        defaults.set(autoCheckUpdates, forKey: Key.autoCheckUpdates)
         defaults.set(language.rawValue, forKey: Key.language)
     }
 
@@ -122,10 +147,15 @@ final class Preferences: ObservableObject {
             Key.port,
             Key.menuBarLyricsEnabled,
             Key.menuBarWidth,
+            Key.menuBarAutoWidth,
+            Key.menuBarFontSize,
             Key.menuBarWordByWord,
             Key.menuBarAlwaysVisible,
             Key.menuBarAlignment,
             Key.menuBarIconPosition,
+            Key.userLyricOffsetMs,
+            Key.showTrackHUD,
+            Key.autoCheckUpdates,
             Key.language,
         ]
         for key in keys where defaults.object(forKey: key) == nil {

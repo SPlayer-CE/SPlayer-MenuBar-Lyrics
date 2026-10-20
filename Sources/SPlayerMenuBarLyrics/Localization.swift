@@ -21,6 +21,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 enum L10nKey: String, CaseIterable {
     case appName
     case unknownArtist
+    case unknownAlbum
 
     case statusConnecting
     case statusConnected
@@ -48,6 +49,9 @@ enum L10nKey: String, CaseIterable {
     case showMenuBarLyrics
     case wordByWord
     case alwaysShowControls
+    case trackInfo
+    case lyricOffset
+    case reset
     case settingsMenu
     case openSPlayer
     case quit
@@ -67,9 +71,13 @@ enum L10nKey: String, CaseIterable {
     case configPortDisabled
     case configPortNoWebSocket
     case configPortOK
+    case splayerVersion
 
     case sectionMenuBar
     case displayWidth
+    case autoWidth
+    case autoWidthHint
+    case fontSize
     case lyricAlignment
     case alignLeft
     case alignCenter
@@ -83,6 +91,9 @@ enum L10nKey: String, CaseIterable {
     case widthHint
     case launchAtLogin
     case launchAtLoginError
+    case trackHUD
+    case trackHUDHint
+    case lyricOffsetHint
 
     case sectionFavorite
     case pluginConnected
@@ -101,6 +112,17 @@ enum L10nKey: String, CaseIterable {
     case sectionAbout
     case aboutText
     case shortcutHint
+    case checkForUpdates
+    case checkingForUpdates
+    case upToDate
+    case updateAvailable
+    case updateCheckFailed
+    case updateCheckFailedDetail
+    case openReleasePage
+    case autoCheckUpdates
+    case diagnostics
+    case copyDiagnostics
+    case diagnosticsCopied
 }
 
 /// 极简本地化：语言由偏好设置决定，缺失的键回退到英文
@@ -130,6 +152,7 @@ enum L10n {
     static let chinese: [L10nKey: String] = [
         .appName: "SPlayer 菜单栏歌词",
         .unknownArtist: "未知艺术家",
+        .unknownAlbum: "未知专辑",
 
         .statusConnecting: "正在连接",
         .statusConnected: "已连接",
@@ -157,6 +180,9 @@ enum L10n {
         .showMenuBarLyrics: "菜单栏展示歌词",
         .wordByWord: "逐字高亮",
         .alwaysShowControls: "菜单栏常驻操控",
+        .trackInfo: "歌曲信息…",
+        .lyricOffset: "歌词偏移",
+        .reset: "重置",
         .settingsMenu: "设置…",
         .openSPlayer: "打开 SPlayer-Next",
         .quit: "退出",
@@ -176,9 +202,13 @@ enum L10n {
         .configPortDisabled: "已读取端口 %d：外部 API 当前未开启",
         .configPortNoWebSocket: "已读取端口 %d：外部 API 已开启，WebSocket 未开启",
         .configPortOK: "已读取端口 %d：配置正常",
+        .splayerVersion: "SPlayer-Next 版本",
 
         .sectionMenuBar: "菜单栏歌词",
         .displayWidth: "展示宽度",
+        .autoWidth: "自动宽度",
+        .autoWidthHint: "按当前歌词长度自动调整，展示宽度作为上限。",
+        .fontSize: "字号",
         .lyricAlignment: "歌词对齐",
         .alignLeft: "靠左",
         .alignCenter: "居中",
@@ -189,9 +219,12 @@ enum L10n {
         .iconHidden: "不显示",
         .wordByWordHint: "仅对带真实逐字时间的歌词（QRC / YRC / TTML）生效；LRC 整行歌词保持静态。",
         .alwaysShowControlsHint: "在菜单栏常驻显示「上一首 / 播放·暂停 / 下一首」按钮；关闭后仅在载入歌曲时显示。",
-        .widthHint: "请确保菜单栏宽度足够，避免被系统隐藏。",
+        .widthHint: "展示宽度是上限；菜单栏空间不足（含刘海屏）时会自动收窄，避免被系统隐藏。",
         .launchAtLogin: "开机自动启动",
         .launchAtLoginError: "设置开机启动失败：%@",
+        .trackHUD: "切歌时显示 HUD",
+        .trackHUDHint: "在菜单栏下方短暂显示歌名、歌手和封面。",
+        .lyricOffsetHint: "如果歌词整体偏早或偏晚，可以在这里微调。",
 
         .sectionFavorite: "收藏按钮",
         .pluginConnected: "桥接插件已连接",
@@ -199,7 +232,7 @@ enum L10n {
         .bridgeListening: "桥接端口已监听",
         .bridgeNotListening: "桥接端口未启动",
         .refreshConnection: "刷新连接",
-        .favoritePluginHint: "收藏按钮需要一个 SPlayer-Next 插件，不会修改客户端源码。请先升级到 1.2.0-beta.1 或更高版本，然后在 SPlayer-Next 的 设置 → 插件管理 → 本地导入 中选择 favorite-bridge.js，并授予 network / api 权限。",
+        .favoritePluginHint: "收藏按钮需要一个 SPlayer-Next 插件，不会修改客户端源码。请先升级到 v1.2.0-nightly.990 或更高版本，然后在 SPlayer-Next 的 设置 → 插件管理 → 本地导入 中选择 favorite-bridge.js，并授予 network / api 权限。",
         .revealPlugin: "在 Finder 中显示插件文件",
         .localBridge: "本地桥接：127.0.0.1:14561（仅本机）",
 
@@ -210,11 +243,23 @@ enum L10n {
         .sectionAbout: "关于",
         .aboutText: "SPlayer 菜单栏歌词是一个独立的小工具：它通过 SPlayer-Next 的外部 API 获取歌词与播放进度，并把当前歌词显示在 macOS 菜单栏中，不会修改 SPlayer-Next 本身。",
         .shortcutHint: "快捷键：⌘, 打开设置",
+        .checkForUpdates: "检查更新",
+        .checkingForUpdates: "正在检查…",
+        .upToDate: "已是最新版本（v%@）",
+        .updateAvailable: "发现新版本 v%@",
+        .updateCheckFailed: "检查更新失败",
+        .updateCheckFailedDetail: "检查更新失败：%@",
+        .openReleasePage: "打开发布页",
+        .autoCheckUpdates: "启动时自动检查更新",
+        .diagnostics: "诊断",
+        .copyDiagnostics: "复制诊断信息",
+        .diagnosticsCopied: "已复制到剪贴板",
     ]
 
     static let english: [L10nKey: String] = [
         .appName: "SPlayer Menu Bar Lyrics",
         .unknownArtist: "Unknown artist",
+        .unknownAlbum: "Unknown album",
 
         .statusConnecting: "Connecting",
         .statusConnected: "Connected",
@@ -242,6 +287,9 @@ enum L10n {
         .showMenuBarLyrics: "Show lyrics in the menu bar",
         .wordByWord: "Word-by-word highlight",
         .alwaysShowControls: "Always show controls",
+        .trackInfo: "Track Info…",
+        .lyricOffset: "Lyric offset",
+        .reset: "Reset",
         .settingsMenu: "Settings…",
         .openSPlayer: "Open SPlayer-Next",
         .quit: "Quit",
@@ -261,9 +309,13 @@ enum L10n {
         .configPortDisabled: "Port %d loaded: the External API is currently off",
         .configPortNoWebSocket: "Port %d loaded: External API is on, WebSocket is off",
         .configPortOK: "Port %d loaded: configuration looks good",
+        .splayerVersion: "SPlayer-Next version",
 
         .sectionMenuBar: "Menu bar lyrics",
         .displayWidth: "Display width",
+        .autoWidth: "Automatic width",
+        .autoWidthHint: "Fit the current lyric; the display width is used as the maximum.",
+        .fontSize: "Font size",
         .lyricAlignment: "Lyric alignment",
         .alignLeft: "Left",
         .alignCenter: "Center",
@@ -274,9 +326,12 @@ enum L10n {
         .iconHidden: "Hidden",
         .wordByWordHint: "Only applies to lyrics with real word timings (QRC / YRC / TTML); plain LRC lines stay static.",
         .alwaysShowControlsHint: "Keep Previous / Play–Pause / Next in the menu bar; when off they only appear while a track is loaded.",
-        .widthHint: "Make sure the menu bar has room, otherwise macOS may hide the item.",
+        .widthHint: "Display width is a maximum; the item narrows automatically when menu bar space is tight, including around the notch.",
         .launchAtLogin: "Launch at login",
         .launchAtLoginError: "Failed to update launch at login: %@",
+        .trackHUD: "Show HUD on track change",
+        .trackHUDHint: "Briefly show the title, artist, and artwork below the menu bar.",
+        .lyricOffsetHint: "Adjust if the lyrics run ahead of or behind the audio.",
 
         .sectionFavorite: "Favorite button",
         .pluginConnected: "Bridge plugin connected",
@@ -284,7 +339,7 @@ enum L10n {
         .bridgeListening: "Bridge port listening",
         .bridgeNotListening: "Bridge port not listening",
         .refreshConnection: "Refresh connection",
-        .favoritePluginHint: "The favorite button needs a SPlayer-Next plugin and never modifies the client source. Upgrade to 1.2.0-beta.1 or newer, then choose favorite-bridge.js in SPlayer-Next → Settings → Plugins → Import local, and grant the network / api permissions.",
+        .favoritePluginHint: "The favorite button needs a SPlayer-Next plugin and never modifies the client source. Upgrade to v1.2.0-nightly.990 or newer, then choose favorite-bridge.js in SPlayer-Next → Settings → Plugins → Import local, and grant the network / api permissions.",
         .revealPlugin: "Reveal plugin file in Finder",
         .localBridge: "Local bridge: 127.0.0.1:14561 (this Mac only)",
 
@@ -295,5 +350,16 @@ enum L10n {
         .sectionAbout: "About",
         .aboutText: "SPlayer Menu Bar Lyrics is a standalone utility. It reads lyrics and playback progress from SPlayer-Next's external API and shows the current line in the macOS menu bar without modifying SPlayer-Next itself.",
         .shortcutHint: "Shortcut: ⌘, opens settings",
+        .checkForUpdates: "Check for updates",
+        .checkingForUpdates: "Checking…",
+        .upToDate: "Up to date (v%@)",
+        .updateAvailable: "Version v%@ is available",
+        .updateCheckFailed: "Update check failed",
+        .updateCheckFailedDetail: "Update check failed: %@",
+        .openReleasePage: "Open release page",
+        .autoCheckUpdates: "Check for updates at launch",
+        .diagnostics: "Diagnostics",
+        .copyDiagnostics: "Copy diagnostics",
+        .diagnosticsCopied: "Copied to clipboard",
     ]
 }

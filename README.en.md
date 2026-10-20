@@ -26,9 +26,13 @@ This is a standalone app that reads lyrics and playback progress through SPlayer
 - **Real word-by-word highlighting**: works with lyrics that carry genuine per-word timings (QRC / YRC / TTML). Plain LRC lines stay static rather than faking word timing.
 - **Inline controls**: 18 px previous / play-pause / next buttons live on the right side of the lyrics item, so you don't need to open the menu.
 - **NetEase Cloud Music favorite**: a heart appears for NetEase tracks and toggles the favorite state right from the menu bar (requires the bundled bridge plugin).
-- **Adjustable appearance**: 100–600 px display width, lyric alignment, and music icon position are all configurable.
+- **Adjustable appearance**: 100–600 px display width, 11–16 pt font size, automatic width, lyric alignment, and music icon position are all configurable.
+- **Track info and HUD**: click the song title in the menu for artwork, album, and progress; a HUD briefly appears below the menu bar on track changes.
+- **Lyric offset**: nudge lyrics by 0.1 s or 0.5 s when they run ahead of or behind the audio.
+- **Notch and multi-display aware**: the item narrows to the available menu bar area on the current screen so it is not clipped by the notch or other items.
+- **Update check and diagnostics**: check GitHub Releases from Settings and copy troubleshooting details with one click.
 - **Chinese and English UI**: menus, settings, and tooltips update immediately when you switch languages.
-- **Lightweight**: no Dock icon, no background daemon. Quitting the app stops everything.
+- **Lightweight**: no Dock icon, no background daemon; quitting stops everything, and the 30 fps redraw stops while paused or disconnected.
 
 ## Why not a plugin?
 
@@ -77,8 +81,9 @@ The DMG contains the app and an `Applications` shortcut, so you can drag to inst
 
 ### Menu bar
 
-- Click the lyrics to open the menu: connection status at the top, followed by playback controls, lyric toggles, lyric alignment, settings, and quit.
-- Menu bar space is limited. A large display width may be hidden by the system or the notch, so reduce it if needed.
+- Click the lyrics to open the menu: connection status and the current track at the top; click the song title for the track info panel (artwork, album, progress).
+- Use the **Lyric offset** submenu to nudge timing by 0.1 s or 0.5 s.
+- The item narrows automatically when menu bar space is tight, including around the notch; you can still reduce the display width manually.
 - While the menu is open: `⌘,` opens Settings and `⌘Q` quits.
 
 ### Settings
@@ -88,11 +93,15 @@ Open **Settings…** from the menu bar, or press `⌘,` while the menu is open.
 | Setting | Default | Description |
 | --- | --- | --- |
 | Show menu bar lyrics | On | Master switch |
-| Display width | 287 px | 100–600 px |
+| Display width | 287 px | 100–600 px; acts as the maximum with automatic width |
+| Automatic width | Off | Fit the current lyric |
+| Font size | 13 pt | 11–16 pt |
 | Lyric alignment | Left | Left / center / right; also switchable from the menu |
 | Icon position | Left of lyrics | Left / right of lyrics / hidden |
 | Word-by-word highlight | On | Only applies to lyrics with real word timings |
 | Always show controls | On | When off, previous / play-pause / next are hidden while idle |
+| Track change HUD | On | Show title, artist, and artwork on track changes |
+| Lyric offset | 0.0 s | ±3 s in 0.1 s steps |
 | Launch at login | Off | Uses the system login item |
 | Interface language | Follow system | Follow system / Simplified Chinese / English |
 | External API port | 14558 | "Read SPlayer config" syncs it automatically |
@@ -146,7 +155,7 @@ The mock server loops through 8 lines of word-timed lyrics and exposes `/api/now
 swift test
 ```
 
-Coverage includes current-line selection, position-anchor interpolation / pause / rate / drift correction, drawing bounds for overlong lyrics, icon layout, and completeness of the Chinese and English strings.
+Coverage includes current-line selection, position-anchor interpolation / pause / rate / drift correction, drawing bounds for overlong lyrics, icon and automatic-width layout, artwork parsing, version comparison, and completeness of the Chinese and English strings.
 
 ### App icon
 
@@ -162,7 +171,7 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ## Known Limitations
 
-- Menu bar space is limited; a large display width can be hidden by the system or the notch (NetEase Cloud Music shows the same warning).
+- On very small screens or with many other status items, macOS may still hide the item; the width narrows automatically and can also be reduced manually.
 - Word-by-word highlighting depends on the lyric source providing real word timings. Plain LRC lines do not get generated word timing.
 - Local tracks without lyrics show the song title; when the player is not connected, only the icon is shown.
 - The external API has no authentication and listens on localhost by default. Do not enable "Allow LAN access" on untrusted networks.
@@ -172,10 +181,14 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ```
 MenuBarLyrics/
-├── .github/workflows/build.yml             # GitHub Actions build and release
+├── .github/
+│   ├── workflows/build.yml                 # GitHub Actions build and release
+│   ├── ISSUE_TEMPLATE/                     # Issue templates
+│   └── PULL_REQUEST_TEMPLATE.md
 ├── Package.swift
 ├── LICENSE                                 # GNU AGPL v3.0
-├── LICENSE                                 # GNU AGPL v3.0
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── Sources/SPlayerMenuBarLyrics/
 │   ├── main.swift / AppDelegate.swift      # Entry point, status bar, and menu
 │   ├── MenuBarLyricView.swift              # Custom-drawn lyrics and playback controls
@@ -186,6 +199,11 @@ MenuBarLyrics/
 │   ├── Preferences.swift                   # UserDefaults-backed settings
 │   ├── Localization.swift                  # Chinese and English string tables
 │   ├── SettingsView.swift                  # SwiftUI settings panel
+│   ├── TrackInfoPopover.swift              # Track info and artwork panel
+│   ├── TrackHUD.swift                      # Track-change HUD
+│   ├── UpdateChecker.swift                 # GitHub Releases update check
+│   ├── Diagnostics.swift                   # Diagnostic report export
+│   ├── DebugLog.swift                      # Logging compiled only in debug builds
 │   ├── FavoriteBridge.swift                # Local HTTP favorite bridge
 │   └── SPlayerConfigReader.swift           # Reads SPlayer-Next's port configuration
 ├── plugin/favorite-bridge.js               # SPlayer favorite bridge plugin
@@ -200,6 +218,12 @@ MenuBarLyrics/
 │   └── GenerateIcon.swift                  # Regenerates the icon
 └── Tests/SPlayerMenuBarLyricsTests/
 ```
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. Report security issues privately as described in [SECURITY.md](SECURITY.md) rather than opening a public issue.
+
+When filing a bug, use **Copy diagnostics** under Settings → About and include the result.
 
 ## License
 

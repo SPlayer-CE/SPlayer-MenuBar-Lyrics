@@ -7,10 +7,12 @@ struct SettingsView: View {
     @ObservedObject var prefs: Preferences
     @ObservedObject var client: SPlayerClient
     @ObservedObject var favoriteBridge: FavoriteBridge
+    @ObservedObject var updateChecker: UpdateChecker
 
     @State private var configHint = ""
     @State private var launchAtLogin = false
     @State private var launchError = ""
+    @State private var diagnosticsCopied = false
 
     var body: some View {
         Form {
@@ -50,6 +52,14 @@ struct SettingsView: View {
                 Text(L10n.t(client.wsConnected ? .connected : .notConnected))
                     .font(.caption)
                     .foregroundStyle(client.wsConnected ? Color.green : Color.secondary)
+            }
+
+            HStack(spacing: 8) {
+                Text(L10n.t(.splayerVersion))
+                Spacer()
+                Text(client.serverVersion ?? "—")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             HStack {
@@ -99,6 +109,20 @@ struct SettingsView: View {
                         .frame(width: 52, alignment: .trailing)
                 }
 
+                Toggle(L10n.t(.autoWidth), isOn: $prefs.menuBarAutoWidth)
+                Text(L10n.t(.autoWidthHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    Text(L10n.t(.fontSize))
+                    Slider(value: $prefs.menuBarFontSize, in: 11...16, step: 1)
+                    Text("\(Int(prefs.menuBarFontSize)) pt")
+                        .monospacedDigit()
+                        .frame(width: 52, alignment: .trailing)
+                }
+
                 HStack {
                     Text(L10n.t(.lyricAlignment))
                     Spacer()
@@ -132,6 +156,34 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Toggle(L10n.t(.alwaysShowControls), isOn: $prefs.menuBarAlwaysVisible)
                 Text(L10n.t(.alwaysShowControlsHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle(L10n.t(.trackHUD), isOn: $prefs.showTrackHUD)
+                Text(L10n.t(.trackHUDHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    Text(L10n.t(.lyricOffset))
+                    Spacer()
+                    Text(lyricOffsetText)
+                        .monospacedDigit()
+                        .frame(width: 64, alignment: .trailing)
+                    Stepper(
+                        "",
+                        value: $prefs.userLyricOffsetMs,
+                        in: -3000...3000,
+                        step: 100
+                    )
+                    .labelsHidden()
+                    Button(L10n.t(.reset)) {
+                        prefs.userLyricOffsetMs = 0
+                    }
+                    .controlSize(.small)
+                    .disabled(abs(prefs.userLyricOffsetMs) < 0.5)
+                }
+                Text(L10n.t(.lyricOffsetHint))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -211,22 +263,96 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
             HStack {
-                Text(L10n.t(.shortcutHint))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
                 Text(appVersion)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                Spacer()
+                Button(L10n.t(.checkForUpdates)) {
+                    Task { await updateChecker.check() }
+                }
+                .controlSize(.small)
+                .disabled(updateChecker.state == .checking)
+            }
+
+            updateStatus
+
+            Toggle(L10n.t(.autoCheckUpdates), isOn: $prefs.autoCheckUpdates)
+                .toggleStyle(.checkbox)
+
+            HStack {
+                Button(L10n.t(.copyDiagnostics)) {
+                    copyDiagnostics()
+                }
+                .controlSize(.small)
+                if diagnosticsCopied {
+                    Text(L10n.t(.diagnosticsCopied))
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                }
+                Spacer()
+                Text(L10n.t(.shortcutHint))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
-    /// 版本号来自 Info.plist；直接 `swift run` 时回退到源码内版本
+    @ViewBuilder
+    private var updateStatus: some View {
+        switch updateChecker.state {
+        case .idle:
+            EmptyView()
+        case .checking:
+            updateStatusText(L10n.t(.checkingForUpdates))
+        case .upToDate(let version):
+            updateStatusText(L10n.format(.upToDate, version))
+        case .available(let version, let url):
+            HStack(spacing: 8) {
+                Text(L10n.format(.updateAvailable, version))
+                    .font(.caption)
+                Button(L10n.t(.openReleasePage)) {
+                    NSWorkspace.shared.open(url)
+                }
+                .controlSize(.small)
+            }
+        case .failed(let message):
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func updateStatusText(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
+
+    private func copyDiagnostics() {
+        let text = Diagnostics.text(
+            prefs: prefs,
+            client: client,
+            favoriteBridge: favoriteBridge
+        )
+        Diagnostics.copyToPasteboard(text)
+        diagnosticsCopied = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            diagnosticsCopied = false
+        }
+    }
+
+    private var lyricOffsetText: String {
+        if abs(prefs.userLyricOffsetMs) < 0.5 { return "0.0 s" }
+        return String(format: "%+.1f s", prefs.userLyricOffsetMs / 1000)
+    }
+
+    /// 版本号来自 Info.plist；直接 `swift run` 时回退到 dev
     private var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return "v\(version ?? "1.1.0")"
+        return "v\(version ?? "dev")"
     }
 
     private var statusColor: Color {
@@ -288,17 +414,24 @@ enum PluginBundle {
 
 @MainActor
 final class SettingsWindowController: NSWindowController {
-    init(prefs: Preferences, client: SPlayerClient, favoriteBridge: FavoriteBridge) {
+    init(
+        prefs: Preferences,
+        client: SPlayerClient,
+        favoriteBridge: FavoriteBridge,
+        updateChecker: UpdateChecker
+    ) {
         let view = SettingsView(
             prefs: prefs,
             client: client,
-            favoriteBridge: favoriteBridge
+            favoriteBridge: favoriteBridge,
+            updateChecker: updateChecker
         )
         let hosting = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: hosting)
         window.title = L10n.t(.settingsWindowTitle)
-        window.styleMask = [.titled, .closable, .miniaturizable]
-        window.setContentSize(NSSize(width: 520, height: 720))
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.setContentSize(NSSize(width: 520, height: 780))
+        window.minSize = NSSize(width: 520, height: 560)
         window.center()
         window.isReleasedWhenClosed = false
         super.init(window: window)

@@ -30,6 +30,7 @@ final class MenuBarLyricView: NSView {
     private var controlsVisible = false
     private var favoriteSupported = false
     private var iconPosition: MenuBarIconPosition = .left
+    private var fontSize: CGFloat = 13
 
     private let buttonSize: CGFloat = 18
     private let rightInset: CGFloat = 6
@@ -74,6 +75,41 @@ final class MenuBarLyricView: NSView {
     func setPlaying(_ playing: Bool) {
         playPauseButton.symbol = playing ? "pause.fill" : "play.fill"
         playPauseButton.updateTooltip(L10n.t(playing ? .pause : .play))
+    }
+
+    func setFontSize(_ size: CGFloat) {
+        guard abs(fontSize - size) > 0.01 else { return }
+        fontSize = size
+        textView.setFontSize(size)
+        needsLayout = true
+    }
+
+    /// 自动宽度重算用：任一影响布局的状态变化都应触发重新测量
+    var layoutSignature: String {
+        "\(controlsVisible)-\(favoriteButton.isHidden)-\(iconPosition.rawValue)-\(fontSize)"
+    }
+
+    /// 自动宽度：按当前歌词和可见控件计算需要的最小宽度
+    func desiredWidth(for text: String, maxWidth: CGFloat) -> CGFloat {
+        let normalized = text
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let textWidth = normalized.isEmpty
+            ? 0
+            : Self.measureTextWidth(normalized, fontSize: fontSize)
+        let textLeft: CGFloat = iconPosition == .left ? 26 : 6
+        let iconRightGap: CGFloat = iconPosition == .right ? iconSize + 4 : 0
+        let visibleButtons = 3 + (favoriteButton.isHidden ? 0 : 1)
+        let controlsGap: CGFloat = controlsVisible
+            ? buttonSize * CGFloat(visibleButtons) + 4
+            : 0
+        let desired = textLeft + textWidth + iconRightGap + rightInset + controlsGap + 4
+        return min(max(desired, 60), maxWidth)
+    }
+
+    static func measureTextWidth(_ text: String, fontSize: CGFloat) -> CGFloat {
+        let font = NSFont.systemFont(ofSize: fontSize, weight: .regular)
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
     }
 
     /// 语言切换后刷新固定按钮的提示
@@ -351,7 +387,10 @@ private final class KaraokeTextView: NSView {
     private let scrollGap: CGFloat = 40
     private let marqueeStartDelay: TimeInterval = 0.6
 
-    private let font = NSFont.systemFont(ofSize: 13, weight: .regular)
+    private var fontSize: CGFloat = 13
+    private var font: NSFont {
+        NSFont.systemFont(ofSize: fontSize, weight: .regular)
+    }
 
     override var isOpaque: Bool { false }
 
@@ -365,6 +404,12 @@ private final class KaraokeTextView: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         needsDisplay = true
+    }
+
+    func setFontSize(_ size: CGFloat) {
+        guard abs(fontSize - size) > 0.01 else { return }
+        fontSize = size
+        rebuild()
     }
 
     func update(

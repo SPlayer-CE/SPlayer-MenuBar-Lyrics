@@ -12,7 +12,10 @@ let package = Package(
         .executableTarget(
             name: "SPlayerMenuBarLyrics",
             path: "Sources/SPlayerMenuBarLyrics",
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: [
+                .swiftLanguageMode(.v5),
+                .define("DEBUG", .when(configuration: .debug)),
+            ]
         ),
         .testTarget(
             name: "SPlayerMenuBarLyricsTests",

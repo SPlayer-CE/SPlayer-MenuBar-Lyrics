@@ -5,6 +5,13 @@ struct Artist: Decodable, Equatable {
     let name: String
 }
 
+/// SPlayer-Next 曲目专辑
+struct Album: Decodable, Equatable {
+    let id: String?
+    let name: String?
+    let cover: String?
+}
+
 /// SPlayer-Next 曲目（只解码歌词显示需要的字段）
 struct Track: Decodable, Equatable {
     let id: String
@@ -12,12 +19,44 @@ struct Track: Decodable, Equatable {
     let source: String?
     let title: String
     let artists: [Artist]?
+    let album: Album?
     let duration: Double?
+    let cover: String?
+    let coverOriginal: String?
+    let comment: String?
 
     var artistsText: String {
         let names = (artists ?? []).map(\.name).filter { !$0.isEmpty }
         return names.isEmpty ? L10n.t(.unknownArtist) : names.joined(separator: " / ")
     }
+
+    var albumText: String {
+        guard let name = album?.name, !name.isEmpty else {
+            return L10n.t(.unknownAlbum)
+        }
+        return name
+    }
+
+    /// 优先使用高清封面；外部 API 的三个字段都可能是空字符串
+    var artworkURL: URL? {
+        for raw in [coverOriginal, cover, album?.cover] {
+            guard let raw, !raw.isEmpty, let url = URL(string: raw) else { continue }
+            return url
+        }
+        return nil
+    }
+
+    /// 外部 API 的时长单位是毫秒
+    var durationSeconds: Double? {
+        guard let duration, duration > 0 else { return nil }
+        return duration / 1000
+    }
+}
+
+/// GET /api/info
+struct SPlayerInfo: Decodable {
+    let name: String?
+    let version: String?
 }
 
 /// 逐字歌词中的单个片段

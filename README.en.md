@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5">
   <img src="https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white" alt="macOS 13+">
-  <img src="https://img.shields.io/badge/version-1.1.0-2EA44F" alt="Version 1.1.0">
+  <img src="https://img.shields.io/badge/version-1.2.0-2EA44F" alt="Version 1.2.0">
   <img src="https://img.shields.io/badge/UI%20Language-中文%20%7C%20English-4C9AFF" alt="UI language: Chinese / English">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License: AGPL-3.0">
 </p>
@@ -72,7 +72,7 @@ On launch there is no Dock icon; a music icon plus the current lyric appears in 
 
 ```bash
 ./scripts/package.sh
-# Output: build/SPlayer-Menu-Bar-Lyrics-1.1.0.dmg
+# Output: build/SPlayer-Menu-Bar-Lyrics-1.2.0.dmg
 ```
 
 The DMG contains the app and an `Applications` shortcut, so you can drag to install. The app is ad-hoc signed and not notarized. If Gatekeeper blocks the first launch, allow it under **System Settings → Privacy & Security**, or right-click the app and choose Open.
@@ -167,7 +167,7 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ### Continuous integration
 
-[.github/workflows/build.yml](.github/workflows/build.yml) runs the tests and builds a universal binary (arm64 + x86_64), DMG, and zip on pushes to `main` / `master`, pull requests, `v*` tags, and manual dispatches. Pushing a tag that matches the `Info.plist` version (for example `v1.1.0`) creates a GitHub Release with the artifacts attached. To reproduce the universal build locally, run `UNIVERSAL=1 ./scripts/package.sh`.
+[.github/workflows/build.yml](.github/workflows/build.yml) runs the tests and builds a universal binary (arm64 + x86_64), DMG, and zip on pushes to `main` / `master`, pull requests, `v*` tags, and manual dispatches. Pushing a tag that matches the `Info.plist` version (for example `v1.2.0`) creates a GitHub Release with the artifacts attached. To reproduce the universal build locally, run `UNIVERSAL=1 ./scripts/package.sh`.
 
 ## Known Limitations
 

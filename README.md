@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white" alt="Swift 5">
   <img src="https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white" alt="macOS 13+">
-  <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.1.0-2EA44F" alt="版本 1.1.0">
+  <img src="https://img.shields.io/badge/%E7%89%88%E6%9C%AC-1.2.0-2EA44F" alt="版本 1.2.0">
   <img src="https://img.shields.io/badge/%E7%95%8C%E9%9D%A2%E8%AF%AD%E8%A8%80-%E4%B8%AD%E6%96%87%20%7C%20English-4C9AFF" alt="界面语言：中文 / English">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="许可证：AGPL-3.0">
 </p>
@@ -72,7 +72,7 @@ swift run SPlayerMenuBarLyrics
 
 ```bash
 ./scripts/package.sh
-# 输出 build/SPlayer-Menu-Bar-Lyrics-1.1.0.dmg
+# 输出 build/SPlayer-Menu-Bar-Lyrics-1.2.0.dmg
 ```
 
 DMG 内含应用本体与 `Applications` 快捷方式，拖入即可安装。应用使用 ad-hoc 签名、未公证，首次打开若被 Gatekeeper 拦截，请在「系统设置 → 隐私与安全性」中放行，或右键 → 打开。
@@ -167,7 +167,7 @@ swift scripts/GenerateIcon.swift Support/AppIcon.icns
 
 ### 持续集成
 
-[.github/workflows/build.yml](.github/workflows/build.yml) 会在推送到 `main` / `master`、提交 PR、推送 `v*` 标签或手动触发时运行测试，并构建通用二进制（arm64 + x86_64）、打包 DMG 与 zip 产物。推送与 `Info.plist` 版本一致的标签（如 `v1.1.0`）会自动创建 GitHub Release 并附加产物；本地可用 `UNIVERSAL=1 ./scripts/package.sh` 复现同样的通用构建。
+[.github/workflows/build.yml](.github/workflows/build.yml) 会在推送到 `main` / `master`、提交 PR、推送 `v*` 标签或手动触发时运行测试，并构建通用二进制（arm64 + x86_64）、打包 DMG 与 zip 产物。推送与 `Info.plist` 版本一致的标签（如 `v1.2.0`）会自动创建 GitHub Release 并附加产物；本地可用 `UNIVERSAL=1 ./scripts/package.sh` 复现同样的通用构建。
 
 ## 已知限制
 

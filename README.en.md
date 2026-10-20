@@ -41,7 +41,7 @@ SPlayer-Next plugins run in a sandboxed subprocess with only `network / control 
 | OS | macOS 13 Ventura or later |
 | Player | [SPlayer-Next](https://splayer-next.imsyy.top) with **Settings → External API** enabled |
 | Build | Xcode command line tools (`swiftc`, `swift build`) |
-| Favorites (optional) | SPlayer-Next **1.2.0-beta.1+**, signed in to a NetEase Cloud Music account |
+| Favorites (optional) | SPlayer-Next **v1.2.0-nightly.990**, signed in to a NetEase Cloud Music account |
 
 > Enabling **WebSocket** in SPlayer-Next is recommended: track changes, lyrics, and playback state arrive instantly. Without it, the app polls roughly every 0.45 seconds and everything still works.
 >
@@ -103,7 +103,7 @@ When a NetEase Cloud Music track is playing, a heart appears at the far right of
 
 To enable it:
 
-1. Upgrade SPlayer-Next to **1.2.0-beta.1 or later** (1.1.0 ships plugin Host API level 3, which lacks `splayer.api.call`).
+1. Upgrade SPlayer-Next to **v1.2.0-nightly.990** (1.1.0 ships plugin Host API level 3, which lacks `splayer.api.call`).
 2. In SPlayer-Next, open **Settings → Plugins → Import local**, and select [plugin/favorite-bridge.js](plugin/favorite-bridge.js). The "Reveal plugin in Finder" button in Settings takes you straight to the bundled copy.
 3. Grant the plugin `network` and `api` permissions, then enable it.
 4. The menu bar app listens on `127.0.0.1:14561` for favorite requests and reports. **Settings → Favorite Button** shows "Bridge plugin connected" once it is working.

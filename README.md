@@ -41,7 +41,7 @@ SPlayer-Next 的插件运行在沙箱子进程中，权限只有 `network / cont
 | 系统 | macOS 13 Ventura 或更高 |
 | 播放器 | [SPlayer-Next](https://splayer-next.imsyy.top)，并开启 **设置 → 外部 API** |
 | 构建 | Xcode 命令行工具（`swiftc`、`swift build`） |
-| 收藏功能（可选） | SPlayer-Next **1.2.0-beta.1+**，登录网易云账号 |
+| 收藏功能（可选） | SPlayer-Next **v1.2.0-nightly.990**，登录网易云账号 |
 
 > 建议同时在 SPlayer-Next 中开启 **WebSocket**：切歌、歌词与播放状态会即时推送。即使不开启，本应用也会以约 0.45 秒的间隔轮询，功能不受影响。
 >
@@ -103,7 +103,7 @@ DMG 内含应用本体与 `Applications` 快捷方式，拖入即可安装。应
 
 启用步骤：
 
-1. 将 SPlayer-Next 升级到 **1.2.0-beta.1 或更高版本**（1.1.0 的插件 Host API 级别为 3，没有 `splayer.api.call`）。
+1. 将 SPlayer-Next 升级到 **v1.2.0-nightly.990**（1.1.0 的插件 Host API 级别为 3，没有 `splayer.api.call`）。
 2. 在 SPlayer-Next 中打开 **设置 → 插件管理 → 本地导入**，选择 [plugin/favorite-bridge.js](plugin/favorite-bridge.js)。设置面板中的「在 Finder 中显示插件文件」可直接定位到包内文件。
 3. 为插件授予 `network` 与 `api` 权限并启用。
 4. 菜单栏应用会在 `127.0.0.1:14561` 监听收藏请求，设置 → 收藏按钮 会显示「桥接插件已连接」。

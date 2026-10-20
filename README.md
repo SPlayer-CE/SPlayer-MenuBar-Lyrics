@@ -204,6 +204,7 @@ MenuBarLyrics/
 │   ├── UpdateChecker.swift                 # GitHub Releases 更新检查
 │   ├── Diagnostics.swift                   # 诊断信息导出
 │   ├── DebugLog.swift                      # 仅 Debug 构建启用的日志
+│   ├── AppLinks.swift                      # 仓库与外部链接
 │   ├── FavoriteBridge.swift                # 收藏桥接本地 HTTP 服务
 │   └── SPlayerConfigReader.swift           # 读取 SPlayer-Next 端口配置
 ├── plugin/favorite-bridge.js               # SPlayer 收藏桥接插件

@@ -54,6 +54,8 @@ enum L10nKey: String, CaseIterable {
     case reset
     case settingsMenu
     case openSPlayer
+    case githubRepository
+    case starOnGitHub
     case quit
 
     case settingsWindowTitle
@@ -185,6 +187,8 @@ enum L10n {
         .reset: "重置",
         .settingsMenu: "设置…",
         .openSPlayer: "打开 SPlayer-Next",
+        .githubRepository: "GitHub 仓库",
+        .starOnGitHub: "在 GitHub 上点个 Star",
         .quit: "退出",
 
         .settingsWindowTitle: "SPlayer 菜单栏歌词设置",
@@ -292,6 +296,8 @@ enum L10n {
         .reset: "Reset",
         .settingsMenu: "Settings…",
         .openSPlayer: "Open SPlayer-Next",
+        .githubRepository: "GitHub repository",
+        .starOnGitHub: "Star on GitHub",
         .quit: "Quit",
 
         .settingsWindowTitle: "SPlayer Menu Bar Lyrics Settings",

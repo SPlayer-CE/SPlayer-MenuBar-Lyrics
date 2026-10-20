@@ -14,7 +14,7 @@ final class UpdateChecker: ObservableObject {
 
     @Published private(set) var state: State = .idle
 
-    private let repository = "SPlayer-CE/SPlayer-MenuBar-Lyrics"
+    private let repository = AppLinks.repositorySlug
     private let lastCheckKey = "lastUpdateCheck"
 
     static var currentVersion: String {

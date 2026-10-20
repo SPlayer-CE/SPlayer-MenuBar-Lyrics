@@ -278,6 +278,16 @@ struct SettingsView: View {
 
             updateStatus
 
+            HStack {
+                Button {
+                    NSWorkspace.shared.open(AppLinks.repository)
+                } label: {
+                    Label(L10n.t(.starOnGitHub), systemImage: "star")
+                }
+                .controlSize(.small)
+                Spacer()
+            }
+
             Toggle(L10n.t(.autoCheckUpdates), isOn: $prefs.autoCheckUpdates)
                 .toggleStyle(.checkbox)
 

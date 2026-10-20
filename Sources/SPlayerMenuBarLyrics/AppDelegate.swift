@@ -258,6 +258,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         menu.addItem(menuItem(L10n.t(.settingsMenu), #selector(openSettings), key: ","))
         menu.addItem(menuItem(L10n.t(.openSPlayer), #selector(activateSPlayer), key: ""))
+        menu.addItem(menuItem(L10n.t(.githubRepository), #selector(openRepository), key: ""))
         menu.addItem(.separator())
         menu.addItem(menuItem(L10n.t(.quit), #selector(quit), key: "q"))
 
@@ -541,6 +542,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openReleasePage() {
         guard case .available(_, let url) = updateChecker.state else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    @objc private func openRepository() {
+        NSWorkspace.shared.open(AppLinks.repository)
     }
 
     @objc private func openSettings() {

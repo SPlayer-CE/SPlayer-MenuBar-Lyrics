@@ -204,6 +204,7 @@ MenuBarLyrics/
 │   ├── UpdateChecker.swift                 # GitHub Releases update check
 │   ├── Diagnostics.swift                   # Diagnostic report export
 │   ├── DebugLog.swift                      # Logging compiled only in debug builds
+│   ├── AppLinks.swift                      # Repository and external links
 │   ├── FavoriteBridge.swift                # Local HTTP favorite bridge
 │   └── SPlayerConfigReader.swift           # Reads SPlayer-Next's port configuration
 ├── plugin/favorite-bridge.js               # SPlayer favorite bridge plugin
